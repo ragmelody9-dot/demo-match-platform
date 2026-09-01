@@ -1,39 +1,18 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Demo Admin</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <div class="admin-wrap">
-    <h1>Demo Admin</h1>
-    <p class="muted">This panel only changes virtual/demo balance.</p>
-    <div class="admin-card">
-      <label>Demo amount to add</label>
-      <input id="amount" type="number" min="0.01" step="0.01" placeholder="1000">
-      <button class="start-btn" id="add">Add Demo Amount</button>
-      <button class="secondary" id="reset">Reset Demo Data</button>
-      <div id="result"></div>
-    </div>
-    <a href="/" class="back">← Back to platform</a>
-  </div>
-  <script>
-    const amount = document.querySelector("#amount");
-    const result = document.querySelector("#result");
-    document.querySelector("#add").onclick = async () => {
-      const r = await fetch("/api/admin/add-demo-amount", {
-        method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({amount: amount.value})
-      });
-      const d = await r.json();
-      result.textContent = r.ok ? `Demo balance: $${Number(d.balance).toFixed(2)}` : d.error;
-    };
-    document.querySelector("#reset").onclick = async () => {
-      await fetch("/api/reset-demo", {method:"POST"});
-      result.textContent = "Demo data reset.";
-    };
-  </script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demo Admin Panel</title><link rel="stylesheet" href="/styles.css"><style>
+.admin-wrap{max-width:900px}.admin-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:18px}.admin-card{margin-bottom:18px}.member-list{display:grid;gap:8px}.member-btn{text-align:left;padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}.member-btn.active{outline:2px solid #111}.small{font-size:12px;color:#777}.table{width:100%;border-collapse:collapse}.table td,.table th{padding:9px;border-bottom:1px solid #eee;text-align:left;font-size:12px}.danger{background:#eee}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}.admin-card button{cursor:pointer}@media(max-width:700px){.admin-grid{grid-template-columns:1fr}}
+</style></head><body><div class="admin-wrap"><h1>Demo Admin Panel</h1><p class="muted">Admin controls for virtual/demo accounts only. No real money is processed.</p><div id="login" class="admin-card"><label>Admin password</label><input id="adminPass" type="password" placeholder="Demo admin password"><button class="start-btn" id="loginBtn">Login</button><p class="small">Admin password is configured in the hosting environment as <b>ADMIN_PASSWORD</b>.</p><div id="loginMsg"></div></div><div id="panel" hidden><div class="admin-grid"><div><div class="admin-card"><h2>Members</h2><div id="members" class="member-list"></div></div><div class="admin-card"><h2>Add member</h2><input id="newName" placeholder="Name"><input id="newPhone" placeholder="Phone / ID" style="margin-top:8px"><input id="newPassword" placeholder="Password (6+ chars)" style="margin-top:8px"><button class="start-btn" id="createMember">Create Member</button></div></div><div><div class="admin-card"><h2 id="selectedTitle">Select a member</h2><div class="small" id="selectedInfo">No member selected.</div><hr><label>Demo amount to add</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="1000"><button class="start-btn" id="addAmount">Add Demo Amount</button><div class="row"><button class="secondary" id="resetTasks">Reset Tasks to 0</button><button class="secondary" id="resetPassword">Reset Password</button></div><hr><label>Activity range</label><select id="days"><option value="10">Last 10 days</option><option value="20">Last 20 days</option><option value="30" selected>Last 30 days</option></select><div id="activity" style="overflow:auto;margin-top:10px"></div></div></div></div><button class="secondary" id="resetAll">Reset Entire Demo</button></div><a href="/" class="back">← Back to platform</a></div><script>
+let adminPassword="", selectedId=null, members=[];
+const $=s=>document.querySelector(s);
+async function api(url,opts={}){opts.headers={...(opts.headers||{}),"x-admin-password":adminPassword};const r=await fetch(url,opts);const d=await r.json();if(!r.ok)throw Error(d.error||"Request failed");return d}
+function renderMembers(){$("#members").innerHTML=members.map(u=>`<button class="member-btn ${u.id===selectedId?'active':''}" data-id="${u.id}"><b>${u.name}</b><br><span class="small">${u.phone} · Balance $${Number(u.balance).toFixed(2)} · Tasks ${u.completed}/${u.totalTasks}</span></button>`).join("");document.querySelectorAll(".member-btn").forEach(b=>b.onclick=()=>selectMember(Number(b.dataset.id)));}
+async function loadMembers(){members=(await api("/api/admin/members")).users; if(!selectedId&&members[0])selectedId=members[0].id; renderMembers(); if(selectedId)await selectMember(selectedId)}
+async function selectMember(id){selectedId=id;const u=members.find(x=>x.id===id);renderMembers();if(!u)return;$("#selectedTitle").textContent=`${u.name} (#${u.id})`;$("#selectedInfo").textContent=`${u.phone} · Balance $${Number(u.balance).toFixed(2)} · Commission $${Number(u.commission).toFixed(2)} · Tasks ${u.completed}/${u.totalTasks}`;await loadActivity();}
+async function loadActivity(){const d=await api(`/api/admin/activity?userId=${selectedId}&days=${$("#days").value}`);$("#activity").innerHTML=d.activity.length?`<table class="table"><tr><th>Date</th><th>Type</th><th>Details</th></tr>${d.activity.map(x=>`<tr><td>${new Date(x.at).toLocaleString()}</td><td>${x.type}</td><td>${x.note||x.product||((x.amount!=null)?'$'+Number(x.amount).toFixed(2):'')}</td></tr>`).join("")}</table>`:`<div class="small">No activity in this period.</div>`;}
+$("#loginBtn").onclick=async()=>{adminPassword=$("#adminPass").value;try{await api("/api/admin/members");$("#login").hidden=true;$("#panel").hidden=false;await loadMembers()}catch(e){$("#loginMsg").textContent=e.message}};
+$("#addAmount").onclick=async()=>{try{await api("/api/admin/add-demo-amount",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:selectedId,amount:$("#amount").value})});$("#amount").value="";await loadMembers()}catch(e){alert(e.message)}};
+$("#resetTasks").onclick=async()=>{if(!confirm("Reset this member's task progress and commission to 0?"))return;try{await api("/api/admin/reset-tasks",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:selectedId})});await loadMembers()}catch(e){alert(e.message)}};
+$("#resetPassword").onclick=async()=>{const p=prompt("New password (minimum 6 characters):");if(!p)return;try{await api("/api/admin/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:selectedId,password:p})});alert("Password reset successfully.");await loadActivity()}catch(e){alert(e.message)}};
+$("#days").onchange=loadActivity;
+$("#createMember").onclick=async()=>{try{await api("/api/admin/members",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:$("#newName").value,phone:$("#newPhone").value,password:$("#newPassword").value})});$("#newName").value=$("#newPhone").value=$("#newPassword").value="";await loadMembers()}catch(e){alert(e.message)}};
+$("#resetAll").onclick=async()=>{if(!confirm("Reset the entire demo database?"))return;try{await api("/api/admin/reset-demo",{method:"POST"});selectedId=null;await loadMembers()}catch(e){alert(e.message)}};
+</script></body></html>
