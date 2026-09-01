@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Demo Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="admin-wrap">
+    <h1>Demo Admin</h1>
+    <p class="muted">This panel only changes virtual/demo balance.</p>
+    <div class="admin-card">
+      <label>Demo amount to add</label>
+      <input id="amount" type="number" min="0.01" step="0.01" placeholder="1000">
+      <button class="start-btn" id="add">Add Demo Amount</button>
+      <button class="secondary" id="reset">Reset Demo Data</button>
+      <div id="result"></div>
+    </div>
+    <a href="/" class="back">← Back to platform</a>
+  </div>
+  <script>
+    const amount = document.querySelector("#amount");
+    const result = document.querySelector("#result");
+    document.querySelector("#add").onclick = async () => {
+      const r = await fetch("/api/admin/add-demo-amount", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({amount: amount.value})
+      });
+      const d = await r.json();
+      result.textContent = r.ok ? `Demo balance: $${Number(d.balance).toFixed(2)}` : d.error;
+    };
+    document.querySelector("#reset").onclick = async () => {
+      await fetch("/api/reset-demo", {method:"POST"});
+      result.textContent = "Demo data reset.";
+    };
+  </script>
+</body>
+</html>
