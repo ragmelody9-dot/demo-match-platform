@@ -1,0 +1,36 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Demo User",
+      "phone": "+49123",
+      "password": "123456",
+      "balance": 0,
+      "commission": 0,
+      "completed": 0,
+      "totalTasks": 40,
+      "createdAt": "2026-09-02T00:00:00.000Z"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Premium Watch",
+      "price": 159.99,
+      "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      "id": 2,
+      "name": "Wireless Headphones",
+      "price": 89.99,
+      "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      "id": 3,
+      "name": "Designer Sunglasses",
+      "price": 129.99,
+      "image": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=800&q=80"
+    }
+  ],
+  "activity": []
+}
